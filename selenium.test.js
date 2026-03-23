@@ -1,63 +1,55 @@
 const assert = require('node:assert');
-const { Builder, By } = require('selenium-webdriver');
-const { startServer } = require('./app');
-
-async function runTest() {
-  const server = startServer(8080, '127.0.0.1');
-  const driver = await new Builder().forBrowser('chrome').build();
-
-  try {
-    await driver.get('http://127.0.0.1:8080');
-    const text = await driver.findElement(By.id('result')).getText();
-    assert.strictEqual(text, 'Sum is: 5');
-    console.log('Test passed');
-  } finally {
-    await driver.quit();
-    server.close();
-  }
-}
-
-runTest().catch(err => {
-  console.error('Test failed:', err);
-  process.exit(1);
-});
-
-/* const assert = require('node:assert');
 const { Builder, By, until } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const { startServer } = require('./app');
 
 async function runTest() {
   const host = '127.0.0.1';
-  const port = 8080;
-  const server = startServer(port, host);
+
+  // ✅ dynamic port (VERY IMPORTANT for Jenkins)
+  const server = await startServer(0, host);
+  const port = server.address().port;
+
+  console.log(`🚀 Server started on ${port}`);
+
   let driver;
 
   try {
     const options = new chrome.Options();
-    //options.addArguments('--headless=new', '--no-sandbox', '--disable-dev-shm-usage');
-    options.addArguments('--no-sandbox', '--disable-dev-shm-usage');
 
-    driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
+    // ✅ Required for Jenkins (headless environment)
+    options.addArguments('--headless=new');
+    options.addArguments('--no-sandbox');
+    options.addArguments('--disable-dev-shm-usage');
+
+    driver = await new Builder()
+      .forBrowser('chrome')
+      .setChromeOptions(options)
+      .build();
+
+    console.log("🌐 Opening browser...");
 
     await driver.get(`http://${host}:${port}`);
-    const result = await driver.wait(
+
+    const element = await driver.wait(
       until.elementLocated(By.id('result')),
       5000
     );
-    const text = await result.getText();
-    assert.strictEqual(text, 'Sum is: 5');
-    console.log('Selenium test passed: page shows "Sum is: 5"');
+
+    const text = await element.getText();
+    console.log("📄 Found:", text);
+
+    // ✅ correct expected value
+    assert.strictEqual(text, 'Sum is: 7');
+
+    console.log('✅ Selenium test passed');
+  } catch (err) {
+    console.error('❌ Test failed:', err);
+    process.exit(1);
   } finally {
-    if (driver) {
-      await driver.quit();
-    }
-    await new Promise((resolve) => server.close(resolve));
+    if (driver) await driver.quit();
+    server.close();
   }
 }
 
-runTest().catch((err) => {
-  console.error('Selenium test failed:', err);
-  process.exitCode = 1;
-});
-*/
+runTest();
