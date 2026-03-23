@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_USER = "jakkani7"
-        IMAGE_NAME = "my-k8s-app"
+        IMAGE_NAME = "my-k8s-app-selenium"
     }
 
     stages {
